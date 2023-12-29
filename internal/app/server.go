@@ -33,7 +33,7 @@ func (s *Server) HandlePostRequest(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, "http://localhost:8080/"+key)
+	c.JSON(http.StatusCreated, gin.H{"shortened_url": "http://localhost:8080/" + key})
 }
 
 func (s *Server) HandleGetRequest(c *gin.Context) {
