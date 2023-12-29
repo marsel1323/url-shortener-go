@@ -1,7 +1,7 @@
 package app
 
 import (
-	"io"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/url"
 )
@@ -14,56 +14,38 @@ func NewServer(storage Storage) *Server {
 	return &Server{storage: storage}
 }
 
-func (s *Server) ListenAndServe() error {
-	http.HandleFunc("/", s.handleRequests)
-	return http.ListenAndServe("localhost:8080", nil)
-}
-
-func (s *Server) handleRequests(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		s.handlePostRequest(w, r)
-	case http.MethodGet:
-		s.handleGetRequest(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (s *Server) handlePostRequest(w http.ResponseWriter, r *http.Request) {
-	b, err := io.ReadAll(r.Body)
+func (s *Server) HandlePostRequest(c *gin.Context) {
+	b, err := c.GetRawData()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	u := string(b)
 	if !isValidURL(u) {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
 		return
 	}
 
 	key, err := s.storage.Save(u)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("http://localhost:8080/" + key))
+	c.JSON(http.StatusCreated, "http://localhost:8080/"+key)
 }
 
-func (s *Server) handleGetRequest(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[1:]
+func (s *Server) HandleGetRequest(c *gin.Context) {
+	id := c.Param("id")
 
 	u, err := s.storage.Load(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "URL not found"})
 		return
 	}
 
-	w.Header().Set("Location", u)
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	c.Redirect(http.StatusTemporaryRedirect, u)
 }
 
 func isValidURL(u string) bool {
