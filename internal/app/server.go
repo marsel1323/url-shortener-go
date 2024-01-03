@@ -1,7 +1,9 @@
 package app
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -41,7 +43,15 @@ func (s *Server) HandleAPIShorten(c *gin.Context) {
 		URL string `json:"url"`
 	}
 
-	if err := c.BindJSON(&request); err != nil {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	defer c.Request.Body.Close()
+
+	err = json.Unmarshal(body, &request)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
@@ -57,7 +67,15 @@ func (s *Server) HandleAPIShorten(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"result": "http://localhost:8080/" + key})
+	response := gin.H{"result": "http://localhost:8080/" + key}
+	respBytes, err := json.Marshal(response)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+	c.Writer.Header().Set("Content-Type", "application/json")
+	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write(respBytes)
 }
 
 func (s *Server) HandleGetRequest(c *gin.Context) {
