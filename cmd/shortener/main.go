@@ -13,6 +13,7 @@ func main() {
 	server := app.NewServer(storage)
 
 	r.POST("/", server.HandlePostRequest)
+	r.POST("/api/shorten", server.HandleAPIShorten)
 	r.GET("/:id", server.HandleGetRequest)
 
 	log.Fatal(r.Run("localhost:8080"))

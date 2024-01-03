@@ -36,6 +36,30 @@ func (s *Server) HandlePostRequest(c *gin.Context) {
 	c.String(http.StatusCreated, "http://localhost:8080/"+key)
 }
 
+func (s *Server) HandleAPIShorten(c *gin.Context) {
+	var request struct {
+		URL string `json:"url"`
+	}
+
+	if err := c.BindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	if !isValidURL(request.URL) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL"})
+		return
+	}
+
+	key, err := s.storage.Save(request.URL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"result": "http://localhost:8080/" + key})
+}
+
 func (s *Server) HandleGetRequest(c *gin.Context) {
 	id := c.Param("id")
 

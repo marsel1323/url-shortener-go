@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,7 @@ func setupRouter() (*gin.Engine, Storage) {
 	server := NewServer(storage)
 
 	r.POST("/", server.HandlePostRequest)
+	r.POST("/api/shorten", server.HandleAPIShorten)
 	r.GET("/:id", server.HandleGetRequest)
 
 	return r, storage
@@ -108,4 +110,31 @@ func TestHandleGetRequestRootPath(t *testing.T) {
 	if responseRecorder.Code != http.StatusNotFound {
 		t.Errorf("Expected status code %d for root path, got %d", http.StatusNotFound, responseRecorder.Code)
 	}
+}
+
+func TestHandleAPIShorten(t *testing.T) {
+	router, _ := setupRouter()
+
+	w := httptest.NewRecorder()
+	reqBody := `{"url":"https://example.com"}`
+	req, _ := http.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, w.Code)
+	}
+
+	var response map[string]string
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Errorf("Failed to parse response: %v", err)
+	}
+
+	if _, ok := response["result"]; !ok {
+		t.Errorf("Expected 'result' filed in the response")
+	}
+
+	// Дополнительно проверьте формат возвращаемого URL и другие возможные сценарии
 }
