@@ -19,7 +19,8 @@ jobs:
         uses: robinraju/release-downloader@v1.8
         with:
           repository: Yandex-Practicum/go-autotests
-          tag: "v0.9.16"
+          latest: true
+          #tag: "v0.9.16"
           fileName: statictest
           out-file-path: .tools
 
